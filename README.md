@@ -102,18 +102,16 @@ The same footage through the full `ds_main.py` pipeline (decode → nvinfer Tens
 
 ## Jetson performance
 
-The stack was run on the vehicle's Jetson Orin Nano (JetPack 6, DeepStream 7.1, Docker). Frame-rate logs from those runs are not available, so this README does not quote an on-vehicle number for this pipeline.
+Measured on the vehicle's Jetson Orin Nano on 9 May 2026 with `src/vision_test.py` (GPU decode → TensorRT FP16 → post-process) inside the Docker image, on the live RTSP stream of the SIYI A8 mini, 120 s per model, confidence 0.35:
 
-For reference, the same board and the same TensorRT FP16 path, measured in my graduation thesis with a different detector (underwater pipeline detection, 640×640, MAXN_SUPER + `jetson_clocks`, 600-frame real video, end-to-end pre-process + inference + post-process):
+| Detector (5 buoy classes) | FPS avg | FPS p95 | TensorRT inference avg | TensorRT p95 | Frames |
+|---|---|---|---|---|---|
+| YOLOv8n (the model used here) | 25.3 | 32.8 | 18.8 ms | 20.1 ms | 2,905 |
+| YOLO26n | 25.4 | 35.1 | 17.3 ms | 18.0 ms | 2,902 |
 
-| Model | FPS |
-|---|---|
-| YOLOv11s | 43.4 |
-| YOLOv8s | 38.9 |
+Both models reach almost the same frame rate although YOLO26n is 1.5 ms faster per inference, which points to the camera stream, not the GPU, as the limit. The run used a dark-background test scene, so its detection counts say nothing about accuracy and are not reported.
 
-Pure GPU throughput (trtexec) was ~136 qps, so the real pipeline is CPU-bound in pre-processing. Locking clocks with `jetson_clocks` raised FPS from 24.7 to 43.4 (+76 %).
-
-To measure this pipeline on a Jetson: `./run.sh track --src <rtsp-or-video> --sink fake --no-gimbal` prints `avg_fps` in its `[SUMMARY]` line, and `python3 src/vision_test.py --src <rtsp-or-video>` reports FPS avg/min/p95 and TensorRT latency (press `s`).
+The DeepStream app (`ds_main.py` with the NvDCF tracker) was not benchmarked separately on the Jetson. To measure it: `./run.sh track --src <rtsp-or-video> --sink fake --no-gimbal` prints `avg_fps` in its `[SUMMARY]` line.
 
 ## Quick start (Jetson)
 
