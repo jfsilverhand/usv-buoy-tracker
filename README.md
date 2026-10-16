@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/jfsilverhand/usv-buoy-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/jfsilverhand/usv-buoy-tracker/actions/workflows/tests.yml)
 
-Vision and camera-control stack for the **AURA** team's unmanned surface vehicle (Kocaeli University). A DeepStream pipeline detects colored buoys in the gimbal camera's RTSP stream and a PID loop steers the SIYI A8 mini gimbal to keep the target centered. The whole stack ships as one Docker image, so any Jetson in the team runs it with `./run.sh`.
+Vision and camera-control stack for the **AURA** team's unmanned surface vehicle (Kocaeli University). A DeepStream pipeline detects colored buoys in the gimbal camera's RTSP stream and a PID loop sends speed commands to the SIYI A8 mini gimbal to keep the target centered (the gimbal driver was corrected against SIYI's reference frames and still needs a re-test on the hardware, see Tests). The whole stack ships as one Docker image, so any Jetson in the team runs it with `./run.sh`.
 
 ![demo](eval/demo.gif)
 
@@ -59,6 +59,16 @@ SIYI A8 mini ──RTSP/H.264──► rtspsrc ► nvv4l2decoder (HW decode)
 - **Everything is one bind mount.** The project directory is mounted at `/workspace`, so the parser `.so`, engines and configs built inside the container persist on the host and are visible to `git status` (and ignored where they should be).
 - **Graceful degradation.** If the gimbal doesn't answer, the app keeps running in detection-only mode.
 
+## Detector accuracy (validation split)
+
+The buoy detector is YOLOv8n (5 classes, 640×640), trained in December 2025 with Ultralytics 8.3 on a 25-epoch schedule; the deployed weights are the best checkpoint, saved at epoch 15. Metrics on the dataset's validation split, read from the checkpoint itself:
+
+| Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
+|---|---|---|---|
+| 0.898 | 0.849 | 0.920 | 0.640 |
+
+These are validation-split numbers, not a separate held-out test set. Whether frames of the 2025 replay video below also appear in the training data has not been checked, so the replay statistics may be optimistic.
+
 ## Offline evaluation (Sep 2026)
 
 Replay of 114 s (3,414 frames, 1366×1012) of footage recorded by the vehicle camera on the water in 2025, run through `models/best.onnx` with the same confidence threshold as `ds_main.py` (0.40). Script: [`tools/offline_eval.py`](tools/offline_eval.py). This is a post-hoc evaluation on recorded video, not a live on-vehicle run.
@@ -74,7 +84,7 @@ Replay of 114 s (3,414 frames, 1366×1012) of footage recorded by the vehicle ca
 
 ![tracking error](eval/tracking_error.png)
 
-**Finding.** With two buoys in view, picking the highest-confidence box each frame makes the target jump between them (the spikes in the plot). On the vehicle that shows up as the gimbal snapping back and forth. Keeping the current target while it is still visible removes 89 % of those switches. `ds_main.py` now does this by locking onto the nvtracker `object_id` (`STICKY_TARGET = True`) instead of re-selecting by confidence every frame; the live effect on the gimbal has not been measured yet.
+**Finding.** With two buoys in view, picking the highest-confidence box each frame makes the target jump between them (the spikes in the plot). On the vehicle that shows up as the gimbal snapping back and forth. In this offline tool, keeping the current target while it is still visible (IoU > 0.3) removes 89 % of those switches. `ds_main.py` implements the same idea differently, by locking onto the nvtracker `object_id` (`STICKY_TARGET = True`); its own switch count is measured in the next section (15 → 8 with tracker tuning) and is not directly comparable to the 63 → 7 here. The live effect on the gimbal has not been measured yet.
 
 **Limitations.** There are no ground-truth labels for this footage, so these are detection and continuity statistics, not precision/recall. Spot-checking sampled frames shows occasional false "black buoy" detections on dark objects (e.g. a boat cover). The camera in this recording was not under gimbal control, so the error signal reflects the vehicle's heading, not gimbal performance.
 
@@ -104,12 +114,14 @@ The same footage through the full `ds_main.py` pipeline (decode → nvinfer Tens
 
 Measured on the vehicle's Jetson Orin Nano on 9 May 2026 with `src/vision_test.py` (GPU decode → TensorRT FP16 → post-process) inside the Docker image, on the live RTSP stream of the SIYI A8 mini, 120 s per model, confidence 0.35:
 
-| Detector (5 buoy classes) | FPS avg | FPS p95 | TensorRT inference avg | TensorRT p95 | Frames |
-|---|---|---|---|---|---|
-| YOLOv8n (the model used here) | 25.3 | 32.8 | 18.8 ms | 20.1 ms | 2,905 |
-| YOLO26n | 25.4 | 35.1 | 17.3 ms | 18.0 ms | 2,902 |
+| Detector (5 buoy classes) | FPS avg | Detector call avg | Detector call p95 | Frames |
+|---|---|---|---|---|
+| YOLOv8n (the model used here) | 25.3 | 18.8 ms | 20.1 ms | 2,905 |
+| YOLO26n | 25.4 | 17.3 ms | 18.0 ms | 2,902 |
 
-Both models reach almost the same frame rate although YOLO26n is 1.5 ms faster per inference, which points to the camera stream, not the GPU, as the limit. The run used a dark-background test scene, so its detection counts say nothing about accuracy and are not reported.
+"Detector call" is the whole `detect()` step timed in `vision_test.py`: CPU letterbox pre-process, host→device copy, TensorRT FP16 execution, device→host copy and NMS — not GPU compute alone. Values are from the run's summary; the raw log was not retained.
+
+Both models reach almost the same frame rate although YOLO26n's detector call is 1.5 ms shorter, so the frame rate is most likely limited by the camera stream rather than the detector. The run used a dark-background test scene, so its detection counts say nothing about accuracy and are not reported.
 
 The DeepStream app (`ds_main.py` with the NvDCF tracker) was not benchmarked separately on the Jetson. To measure it: `./run.sh track --src <rtsp-or-video> --sink fake --no-gimbal` prints `avg_fps` in its `[SUMMARY]` line.
 
