@@ -1,0 +1,28 @@
+services:
+  tracker:
+    build: .
+    image: erengwen/usv-buoy-tracker:latest
+    container_name: usv_buoy_tracker
+    runtime: nvidia
+    privileged: true
+    network_mode: host
+    ipc: host
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - XAUTHORITY=/root/.Xauthority
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - EGL_PLATFORM=surfaceless
+      - RTSP_URI=${RTSP_URI:-rtsp://192.168.2.25:8554/main.264}
+      - GIMBAL_IP=${GIMBAL_IP:-192.168.2.25}
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
+      # Tüm proje (src, configs, models, deepstream_yolo) tek bind mount.
+      # TRT engine'ler ./models altına yazılır ve host'ta kalıcı olur (.gitignore'da).
+      - ./:/workspace
+    stdin_open: true
+    tty: true
+    command: python3 src/ds_main.py
+    # Vision test için: docker compose run --rm tracker python3 src/vision_test.py

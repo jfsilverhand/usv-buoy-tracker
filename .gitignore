@@ -1,0 +1,44 @@
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Önceden derlenmiş aarch64 wheel'ler (opsiyonel, Dockerfile wheels/ içinden kurar)
+wheels/*.whl
+cv2_bundle.tar.gz
+pycuda-*.whl
+
+# TRT engine'ler (cihaza + TensorRT sürümüne özel, paylaşılamaz)
+*.engine
+
+# Derlenmiş parser (.so) — setup.sh container içinde üretir
+*.so
+*.o
+
+# PyTorch weights (eğitim çıktısı; ONNX paylaşılır, .pt paylaşılmaz)
+*.pt
+
+# Eğitilmiş duba modeli takımın yarışma modelidir; ONNX export'ları da yayınlanmaz
+models/best*.onnx
+
+# Videolar ve eval çıktıları (büyük; demo GIF eval/ altında repoda kalır)
+videos/
+eval_out/
+
+# Log
+*.log
+
+# Repo dışı kişisel dosyalar (CV, cover letter, widget/wallpaper) — asla commit'lenmez
+Claude outputs/
+*.zip
+*.tar.gz
+kasa_*.sh
+bpmist_*
+
+# Büyük eval çıktıları (GIF ve örnek kareler repoda kalır)
+eval/*.mp4
+
+# Repo içi sanal ortam
+.venv/
+
+# Test artefacts
+.pytest_cache/

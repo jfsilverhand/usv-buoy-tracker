@@ -1,0 +1,33 @@
+# nvinfer config — duba modeli (5 sınıf)
+# ONNX, DeepStream-Yolo'nun export_yoloV8.py çıktısı olmalı (tek "output" [1,8400,6] çıkışlı).
+# Standart Ultralytics export'u ([1,9,8400]) NvDsInferParseYolo ile çalışmaz.
+# Üretmek için: tools/export_for_deepstream.sh models/best.pt
+# Yollar bu config dosyasının bulunduğu klasöre göredir (nvinfer böyle çözer) → repo nereye klonlanırsa klonlansın çalışır.
+# Engine yoksa nvinfer, TensorRT ONNX parser ile onnx-file'dan üretir ve <onnx>_b1_gpu0_fp16.engine adıyla
+# ONNX'in yanına yazar (model-engine-file bu isimle eşleşmeli). engine-create-func-name KULLANILMIYOR:
+# o, DeepStream-Yolo'nun Darknet yolu içindir ve engine'i çalışma dizinine model_b1_gpu0_fp16.engine olarak kaydeder.
+[property]
+gpu-id=0
+net-scale-factor=0.0039215697906911373
+model-color-format=0
+onnx-file=../models/best_ds.onnx
+model-engine-file=../models/best_ds.onnx_b1_gpu0_fp16.engine
+labelfile-path=./labels.txt
+batch-size=1
+network-mode=2
+num-detected-classes=5
+interval=0
+gie-unique-id=1
+process-mode=1
+network-type=0
+cluster-mode=2
+maintain-aspect-ratio=1
+symmetric-padding=1
+parse-bbox-func-name=NvDsInferParseYolo
+custom-lib-path=../deepstream_yolo/nvdsinfer_custom_impl_Yolo/libnvdsinfer_custom_impl_Yolo.so
+
+[class-attrs-all]
+nms-iou-threshold=0.45
+# ds_main.py CONF_THRESH (0.40) ve tools/offline_eval.py --conf ile aynı eşik
+pre-cluster-threshold=0.40
+topk=100

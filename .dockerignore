@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.egg-info
+.git
+.gitignore
+.gitmodules
+README.md
+README_EN.md
+*.log
+*.engine
+*.pt
+videos/
+eval/
+eval_out/
+tools/
+deepstream_yolo/
+models/best*.onnx

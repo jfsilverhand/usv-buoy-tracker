@@ -1,0 +1,65 @@
+%YAML:1.0
+################################################################################
+# NvDCF tracker — DeepStream 7.x low-level tracker şeması
+# (libnvds_nvmultiobjecttracker.so). Eski DS 5.x "NvDCF:" formatı DS 7.1'de
+# okunmaz. Referans: /opt/nvidia/deepstream/deepstream/samples/configs/
+#                     deepstream-app/config_tracker_NvDCF_perf.yml
+# BASELINE (Eki 2026 öncesi varsayılan). Karşılaştırma için tutuluyor; varsayılan artık tracker_config.yml
+# (yeniden yakalama ayarlı). 2025 kaydında: 11 hedef ID, 26 kilit, 15 hedef atlaması.
+################################################################################
+BaseConfig:
+  minDetectorConfidence: 0.40     # nvinfer pre-cluster-threshold ile aynı
+
+TargetManagement:
+  enableBboxUnClipping: 1
+  preserveStreamUpdateOrder: 0
+  maxTargetsPerStream: 10         # sahnede en fazla birkaç duba olur
+  minIouDiff4NewTarget: 0.5
+  minTrackerConfidence: 0.2
+  probationAge: 3                 # 3 ardışık eşleşmeden sonra ID verilir
+  maxShadowTrackingAge: 30        # ~1 s görünmezse hedef düşürülür (30 fps)
+  earlyTerminationAge: 1
+
+TrajectoryManagement:
+  useUniqueID: 0
+  enableReAssoc: 1
+  minTrajectoryLength4Projection: 20
+  prepLength4TrajectoryProjection: 10
+  trajectoryProjectionLength: 90
+  maxAngle4TrackletMatching: 120
+  minSpeedSimilarity4TrackletMatching: 0.04
+  minBboxSizeSimilarity4TrackletMatching: 0.6
+  maxTrackletMatchingTimeSearchRange: 20
+  trajectoryProjectionProcessNoiseScale: 0.01
+  trajectoryProjectionMeasurementNoiseScale: 100
+  trackletSpacialSearchRegionScale: 0.3
+
+DataAssociator:
+  dataAssociatorType: 0
+  associationMatcherType: 1
+  checkClassMatch: 1              # kırmızı duba ile yeşil duba ID paylaşmasın
+  minMatchingScore4Overall: 0.0
+  minMatchingScore4SizeSimilarity: 0.6
+  minMatchingScore4Iou: 0.0
+  minMatchingScore4VisualSimilarity: 0.7
+  matchingScoreWeight4VisualSimilarity: 0.6
+  matchingScoreWeight4SizeSimilarity: 0.0
+  matchingScoreWeight4Iou: 0.4
+
+StateEstimator:
+  stateEstimatorType: 1           # Kalman
+  processNoiseVar4Loc: 2.0
+  processNoiseVar4Size: 1.0
+  processNoiseVar4Vel: 0.1
+  measurementNoiseVar4Detector: 4.0
+  measurementNoiseVar4Tracker: 16.0
+
+VisualTracker:
+  visualTrackerType: 1            # NvDCF
+  useColorNames: 1
+  useHog: 0                       # HOG kapalı → daha hızlı (perf profili)
+  featureImgSizeLevel: 2
+  featureFocusOffsetFactor_y: -0.2
+  filterLr: 0.075
+  filterChannelWeightsLr: 0.1
+  gaussianSigma: 0.75

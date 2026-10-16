@@ -1,0 +1,27 @@
+# nvinfer config — COCO demo modeli (80 sınıf), DeepStream pipeline için.
+# ONNX DeepStream-Yolo export'u olmalı: tools/export_for_deepstream.sh yolov8n.pt
+# (standart models/yolov8n_coco.onnx sadece vision_test.py / main.py içindir)
+[property]
+gpu-id=0
+net-scale-factor=0.0039215697906911373
+model-color-format=0
+onnx-file=../models/yolov8n_coco_ds.onnx
+model-engine-file=../models/yolov8n_coco_ds.onnx_b1_gpu0_fp16.engine
+labelfile-path=./labels_coco.txt
+batch-size=1
+network-mode=2
+num-detected-classes=80
+interval=0
+gie-unique-id=1
+process-mode=1
+network-type=0
+cluster-mode=2
+maintain-aspect-ratio=1
+symmetric-padding=1
+parse-bbox-func-name=NvDsInferParseYolo
+custom-lib-path=../deepstream_yolo/nvdsinfer_custom_impl_Yolo/libnvdsinfer_custom_impl_Yolo.so
+
+[class-attrs-all]
+nms-iou-threshold=0.45
+pre-cluster-threshold=0.25
+topk=300

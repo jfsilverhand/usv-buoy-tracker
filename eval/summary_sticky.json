@@ -1,0 +1,28 @@
+{
+  "video": "aura_2025_run.mp4",
+  "frames": 3414,
+  "duration_s": 113.8,
+  "resolution": "1366x1012",
+  "conf_threshold": 0.4,
+  "device": "CPUExecutionProvider",
+  "target_select": "sticky",
+  "target_switches": 7,
+  "detection_rate": 0.919,
+  "detections_per_class": {
+    "kirmiziduba": 2157,
+    "sariduba": 2,
+    "siyahduba": 482,
+    "turuncuduba": 0,
+    "yesilduba": 1096
+  },
+  "lock_segments": 10,
+  "longest_lock_s": 54.2,
+  "losses": 9,
+  "median_reacquire_s": 0.33,
+  "mean_abs_ex": 0.43,
+  "infer_ms_avg": 53.02,
+  "infer_ms_p95": 58.63,
+  "e2e_ms_avg": 59.61,
+  "e2e_ms_p95": 65.99,
+  "fps_equiv": 16.8
+}

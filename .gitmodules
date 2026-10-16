@@ -1,0 +1,3 @@
+[submodule "deepstream_yolo"]
+	path = deepstream_yolo
+	url = https://github.com/marcoslucianops/DeepStream-Yolo

@@ -1,0 +1,68 @@
+%YAML:1.0
+################################################################################
+# NvDCF tracker — DeepStream 7.x low-level tracker şeması
+# (libnvds_nvmultiobjecttracker.so). Eski DS 5.x "NvDCF:" formatı DS 7.1'de
+# okunmaz. Referans: /opt/nvidia/deepstream/deepstream/samples/configs/
+#                     deepstream-app/config_tracker_NvDCF_perf.yml
+# VARSAYILAN (yeniden yakalama ayarlı). Araç dubaya yaklaşırken kutu hızla büyüyor ve dedektör uzaktaki
+# dubayı birkaç kare kaçırıyordu → tracker aynı dubaya yeni ID veriyordu. İz tutma süresi 1→3 s,
+# boyut/görünüm eşleştirme eşikleri gevşetildi. 2025 kaydında baseline'a göre:
+# hedef atlaması 15→8, farklı hedef ID 11→9, kilitli kare oranı %88.0→%88.7.
+# A/B: python3 src/ds_main.py --src <video> --sink fake --no-gimbal --tracker configs/tracker_config_baseline.yml
+################################################################################
+BaseConfig:
+  minDetectorConfidence: 0.40     # nvinfer pre-cluster-threshold ile aynı
+
+TargetManagement:
+  enableBboxUnClipping: 1
+  preserveStreamUpdateOrder: 0
+  maxTargetsPerStream: 10         # sahnede en fazla birkaç duba olur
+  minIouDiff4NewTarget: 0.5
+  minTrackerConfidence: 0.2
+  probationAge: 3                 # 3 ardışık eşleşmeden sonra ID verilir
+  maxShadowTrackingAge: 90        # ~3 s görünmese de iz tutulur (yaklaşırken kısa kayıplar)
+  earlyTerminationAge: 1
+
+TrajectoryManagement:
+  useUniqueID: 0
+  enableReAssoc: 1
+  minTrajectoryLength4Projection: 10   # kısa izler de yeniden eşleşebilsin
+  prepLength4TrajectoryProjection: 10
+  trajectoryProjectionLength: 90
+  maxAngle4TrackletMatching: 120
+  minSpeedSimilarity4TrackletMatching: 0.04
+  minBboxSizeSimilarity4TrackletMatching: 0.3   # yaklaşınca kutu 2x büyüyebilir
+  maxTrackletMatchingTimeSearchRange: 60   # 2 s içinde kaybolan izle yeniden eşleş
+  trajectoryProjectionProcessNoiseScale: 0.01
+  trajectoryProjectionMeasurementNoiseScale: 100
+  trackletSpacialSearchRegionScale: 0.3
+
+DataAssociator:
+  dataAssociatorType: 0
+  associationMatcherType: 1
+  checkClassMatch: 1              # kırmızı duba ile yeşil duba ID paylaşmasın
+  minMatchingScore4Overall: 0.0
+  minMatchingScore4SizeSimilarity: 0.3   # (0.6) boyut değişimine tolerans
+  minMatchingScore4Iou: 0.0
+  minMatchingScore4VisualSimilarity: 0.5   # (0.7) uzak→yakın görünüm değişir
+  matchingScoreWeight4VisualSimilarity: 0.6
+  matchingScoreWeight4SizeSimilarity: 0.0
+  matchingScoreWeight4Iou: 0.4
+
+StateEstimator:
+  stateEstimatorType: 1           # Kalman
+  processNoiseVar4Loc: 2.0
+  processNoiseVar4Size: 1.0
+  processNoiseVar4Vel: 0.1
+  measurementNoiseVar4Detector: 4.0
+  measurementNoiseVar4Tracker: 16.0
+
+VisualTracker:
+  visualTrackerType: 1            # NvDCF
+  useColorNames: 1
+  useHog: 0                       # HOG kapalı → daha hızlı (perf profili)
+  featureImgSizeLevel: 2
+  featureFocusOffsetFactor_y: -0.2
+  filterLr: 0.075
+  filterChannelWeightsLr: 0.1
+  gaussianSigma: 0.75
